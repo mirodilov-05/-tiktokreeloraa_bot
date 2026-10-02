@@ -132,6 +132,7 @@ def save_cache(cache_key: str, path: Path, title: str):
 
 def download(url: str, job: Path, hook):
     output = str(job / "%(title).100B.%(ext)s")
+    is_tiktok = "tiktok.com" in urlparse(url).netloc.lower()
     opts = {
         "format": "best[ext=mp4]/best",
         "outtmpl": output,
@@ -148,6 +149,20 @@ def download(url: str, job: Path, hook):
         "postprocessors": [],
         "windowsfilenames": True,
     }
+    if is_tiktok:
+        opts.update({
+            "retries": 4,
+            "fragment_retries": 4,
+            "concurrent_fragment_downloads": 4,
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36",
+                "Referer": "https://www.tiktok.com/",
+                "Accept-Language": "en-US,en;q=0.9",
+            },
+            "extractor_args": {
+                "tiktok": {"app_name": "musical_ly", "app_version": "35.1.3"},
+            },
+        })
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=True)
     media = [p for p in job.iterdir() if p.is_file() and p.suffix.lower() in {".mp4", ".mkv", ".webm", ".mov", ".m4v"}]
